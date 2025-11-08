@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Phase 1: Alpha - Autosave & Branding",
+      "type": "shell",
+      "command": "echo Implement LocalStorage autosave + logo upload"
+    },
+    {
+      "label": "Phase 2: Beta - Exports & UI Polish",
+      "type": "shell",
+      "command": "echo Add PDF/Markdown/Docx export + runtime bar"
+    },
+    {
+      "label": "Phase 3: Release - Installer & Pro Features",
+      "type": "shell",
+      "command": "echo Package with Electron/Tauri + guest library"
+    },
+    {
+      "label": "Phase 4: v2.x - Scale & Differentiation",
+      "type": "shell",
+      "command": "echo Add collaboration, marketplace, analytics"
+    }
+  ]
+}

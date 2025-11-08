@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PodLab Packet Builder v1.9</title>
+
+  <!-- Shared external CSS for live preview and builder UI.
+       Note: the DOWNLOADED packet will inline CSS (Section 5 script) so formatting persists. -->
+  <link rel="stylesheet" href="packet.css" />
+</head>
+<body>
+
+  <!-- Page header: simple, teachable intro -->
+  <h1>🎙️ PodLab Packet Builder v1.9</h1>
+  <p>This builder generates a branded, self-contained episode packet. You can add segments dynamically, script or riff, and produce outreach emails with recording details.</p>
+
+  <!-- Two-column layout container.
+       We'll enable independent scrolling in CSS by constraining height and using overflow.
+       Structure now; CSS tweaks later in Section 5 script or your packet.css. -->
+  <div class="container">
+    <!-- Left column: the form panel. Will scroll independently. -->
+    <div class="form-panel">
+      <h2>📋 Episode details</h2>
+
+      <!-- Logo upload (embedded as base64 into the packet HTML in Section 5 script) -->
+      <label for="logo">Upload logo (PNG/JPG)</label>
+      <input type="file" id="logo" accept="image/png, image/jpeg" />
+      <button type="button" onclick="clearLogo()">Clear logo</button>
+      <small>Optional. The logo appears at the top of the packet.</small>
+
+      <!-- Title drives the packet filename and <h1> -->
+      <label for="title">Episode title</label>
+      <input type="text" id="title" placeholder="e.g., Atlas Watch — The First Light" />
+
+      <!-- Description is a short summary under the title -->
+      <label for="description">Episode description</label>
+      <textarea id="description" rows="3" placeholder="Brief summary of the episode focus"></textarea>
+
+      <!-- Intro is the opening narration -->
+      <label for="intro">Intro script</label>
+      <textarea id="intro" rows="4" placeholder="Welcome, show positioning, and framing"></textarea>
+
+      <!-- Outro is the closing narration -->
+      <label for="outro">Outro script</label>
+      <textarea id="outro" rows="4" placeholder="Closing, calls-to-action, credits"></textarea>
+      <h2>🎙️ Segments (dynamic)</h2>
+      <!-- Controls to add/remove segment blocks. The actual JS lives in Section 5. -->
+      <div class="segment-toolbar">
+        <button type="button" id="addSegmentBtn">➕ Add segment</button>
+        <button type="button" id="removeLastSegmentBtn">➖ Remove last segment</button>
+        <small>Each segment includes talking points, a full script, runtime, a transition, and an ad cart.</small>
+      </div>
+
+      <!-- Dynamic segments container.
+           JS will append segment fieldsets here with unique IDs (segN, segNscript, segNtime, transN, adN). -->
+      <div id="segmentsContainer">
+        <!-- Seed with one initial segment for usability.
+             Additional segments can be added via the "Add segment" button. -->
+        <fieldset class="segment-fieldset" data-index="1">
+          <legend>Segment 1</legend>
+
+          <!-- Talking points: bullet-style prompts to riff or guide discussion -->
+          <label for="seg1">Talking points</label>
+          <textarea id="seg1" rows="4" placeholder="Bullet prompts. Use | to separate points."></textarea>
+          <small>Tip: Use | between points to create clear breaks.</small>
+
+          <!-- Full script: read-through narration for solo delivery -->
+          <label for="seg1script">Segment script</label>
+          <textarea id="seg1script" rows="6" placeholder="Full narration for solo recording"></textarea>
+
+          <!-- Estimated runtime: helps pacing and auto-totaling later -->
+          <label for="seg1time">Estimated runtime (min)</label>
+          <input type="text" id="seg1time" placeholder="e.g., 4–6" />
+
+          <!-- Transition line: bridge to the next ad or segment -->
+          <label for="trans1">Transition line</label>
+          <input type="text" id="trans1" placeholder="Bridge into Ad Cart 1 or next segment" />
+
+          <!-- Ad cart copy: sponsor or promo message for this break -->
+          <label for="ad1">Ad cart 1</label>
+          <textarea id="ad1" rows="3" placeholder="Sponsor/promo copy"></textarea>
+        </fieldset>
+      </div>
+      <h2>👥 Guest Section</h2>
+      <fieldset>
+        <legend>Guest Intro</legend>
+        <input type="text" id="guestIntro" placeholder="On‑air intro line" />
+      </fieldset>
+
+      <fieldset>
+        <legend>Guest Questions</legend>
+        <textarea id="questions" rows="3" placeholder="Q1 | Q2 | Q3"></textarea>
+        <small>Use | to separate questions for clarity.</small>
+      </fieldset>
+
+      <h2>📧 Outreach Section</h2>
+      <fieldset>
+        <legend>Show & Host Info</legend>
+        <input type="text" id="showName" placeholder="Show Name" />
+        <input type="text" id="hostName" placeholder="Host Name" />
+        <input type="text" id="topics" placeholder="Topics Covered" />
+        <input type="text" id="guestName" placeholder="Guest Name" />
+      </fieldset>
+
+      <fieldset>
+        <legend>Recording Details</legend>
+        <input type="date" id="recordDate" />
+        <input type="time" id="recordTime" />
+        <input type="text" id="platform" placeholder="Zoom / Riverside / Studio Address" />
+      </fieldset>
+    </div> <!-- end form-panel -->
+    <!-- Right-hand preview panel -->
+    <div class="preview-panel">
+      <h2>🔍 Live Preview</h2>
+      <div id="preview"><p>Fill out the form to see your packet preview here.</p></div>
+    </div>
+  </div> <!-- end container -->
+
+  <!-- Action buttons -->
+  <h2>⚙️ Actions</h2>
+  <button onclick="generatePacket()">Generate Packet</button>
+  <button onclick="downloadPacket()">Download Packet</button>
+  <button onclick="clearLogo()">Clear Logo</button>
+
+  <!-- Raw HTML output for copy/paste -->
+  <textarea id="output" style="width:100%; height:200px; margin-top:20px;" readonly></textarea>
+  <script>
+    // Helper: get field value by ID
+    function get(id) {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : "";
+    }
+
+    // Add a new segment dynamically
+    let segmentCount = 1; // we seeded Segment 1 in Section 2
+    document.getElementById("addSegmentBtn").addEventListener("click", () => {
+      segmentCount++;
+      const container = document.getElementById("segmentsContainer");
+
+      // Build new fieldset with unique IDs
+      const fs = document.createElement("fieldset");
+      fs.className = "segment-fieldset";
+      fs.dataset.index = segmentCount;
+      fs.innerHTML = `
+        <legend>Segment ${segmentCount}</legend>
+        <label for="seg${segmentCount}">Talking points</label>
+        <textarea id="seg${segmentCount}" rows="4"></textarea>
+
+        <label for="seg${segmentCount}script">Segment script</label>
+        <textarea id="seg${segmentCount}script" rows="6"></textarea>
+
+        <label for="seg${segmentCount}time">Estimated runtime (min)</label>
+        <input type="text" id="seg${segmentCount}time" />
+
+        <label for="trans${segmentCount}">Transition line</label>
+        <input type="text" id="trans${segmentCount}" />
+
+        <label for="ad${segmentCount}">Ad cart ${segmentCount}</label>
+        <textarea id="ad${segmentCount}" rows="3"></textarea>
+      `;
+      container.appendChild(fs);
+    });
+
+    // Remove last segment
+    document.getElementById("removeLastSegmentBtn").addEventListener("click", () => {
+      if (segmentCount > 1) {
+        const container = document.getElementById("segmentsContainer");
+        container.removeChild(container.lastElementChild);
+        segmentCount--;
+      }
+    });
+
+    // Generate packet HTML
+    function generatePacket() {
+      // Inline CSS injection for downloaded packet
+      const cssBlock = `
+      <style>
+        body { background:#0f1115; color:#e6e9ef; font:16px/1.6 Inter, sans-serif; padding:40px; max-width:900px; margin:auto; }
+        h1,h2 { color:#ffd56a; }
+        h3 { color:#5cc8ff; }
+        .section { background:#161a22; border-radius:12px; padding:20px; margin-top:20px; border:2px solid #333; box-shadow:0 4px 8px rgba(0,0,0,0.4); }
+        footer { margin-top:40px; text-align:center; color:#9aa3b2; font-size:0.85rem; }
+      </style>
+      `;
+
+      let html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head><meta charset="utf-8" /><title>${get("title")}</title>${cssBlock}</head>
+      <body>
+        <div class="logo-block">[LOGO HERE]</div>
+        <h1>${get("title")}</h1>
+        <p><em>${get("description")}</em></p>
+        <div class="section"><h2>Intro</h2><p>${get("intro")}</p></div>
+      `;
+
+      // Loop through all segments
+      let totalRuntime = 0;
+      for (let i = 1; i <= segmentCount; i++) {
+        const runtime = get(`seg${i}time`);
+        if (runtime) {
+          const num = parseFloat(runtime);
+          if (!isNaN(num)) totalRuntime += num;
+        }
+        html += `
+        <div class="section">
+          <h2>Segment ${i} ${runtime ? "(" + runtime + " min)" : ""}</h2>
+          <p><strong>Talking Points:</strong> ${get(`seg${i}`)}</p>
+          <p><strong>Script:</strong> ${get(`seg${i}script`)}</p>
+          <p><strong>Transition:</strong> ${get(`trans${i}`)}</p>
+          <p><strong>Ad ${i}:</strong> ${get(`ad${i}`)}</p>
+        </div>
+        `;
+      }
+
+      // Outro
+      html += `
+        <div class="section"><h2>Outro</h2><p>${get("outro")}</p></div>
+      `;
+
+      // Guest section
+      html += `
+        <div class="section">
+          <h2>Guest Section</h2>
+          <p><strong>Intro:</strong> ${get("guestIntro")}</p>
+          <p><strong>Questions:</strong> ${get("questions")}</p>
+        </div>
+      `;
+
+      // Outreach emails
+      html += `
+        <div class="section">
+          <h2>Outreach — Initial Invite</h2>
+          <p><strong>Subject:</strong> Invitation to join ${get("showName")}</p>
+          <p>Dear ${get("guestName")},</p>
+          <p>I’d love to invite you as a guest on <strong>${get("showName")}</strong>, hosted by ${get("hostName")}. In this episode we’ll be covering <em>${get("topics")}</em>.</p>
+          <p>Your insights would add tremendous value to our listeners. Please let me know if you’re available to record.</p>
+          <p>Best regards,<br>${get("hostName")}</p>
+        </div>
+
+        <div class="section">
+          <h2>Outreach — Confirmation & Instructions</h2>
+          <p><strong>Subject:</strong> Confirming your appearance on ${get("showName")}</p>
+          <p>Dear ${get("guestName")},</p>
+          <p>Thank you for agreeing to join us on <strong>${get("showName")}</strong>. We’ll be recording on ${get("recordDate")} at ${get("recordTime")} via ${get("platform")}.</p>
+          <p>Please ensure you have a quiet space, headphones, and a stable internet connection. We’ll provide the recording link shortly before the session.</p>
+          <p>Looking forward to a great conversation on <em>${get("topics")}</em>.</p>
+          <p>Best,<br>${get("hostName")}</p>
+        </div>
+
+        <div class="section">
+          <h2>Outreach — Thank You</h2>
+          <p><strong>Subject:</strong> Thank you for joining ${get("showName")}</p>
+          <p>Dear ${get("guestName")},</p>
+          <p>It was a pleasure having you on <strong>${get("showName")}</strong>. Your insights on <em>${get("topics")}</em> will resonate with our audience.</p>
+          <p>We’ll share the published episode link once it’s live. Thanks again for your time and expertise.</p>
+          <p>Sincerely,<br>${get("hostName")}</p>
+        </div>
+      `;
+
+      // Runtime total
+      html += `
+        <div class="section">
+          <h2>Total Runtime</h2>
+          <p>Estimated total: ${totalRuntime} minutes</p>
+        </div>
+        <footer>PodLab Episode Packet v1.9 — Modular, branded, and ready for recording.</footer>
+      </body></html>
+      `;
+
+      // Handle logo upload
+      const logoInput = document.getElementById("logo");
+      if (logoInput.files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          html = html.replace("[LOGO HERE]",
+            `<img src="${e.target.result}" alt="Logo" style="max-width:200px; margin-bottom:20px;" />`
+          );
+          document.getElementById("preview").innerHTML = html;
+          document.getElementById("output").value = html;
+        };
+        reader.readAsDataURL(logoInput.files[0]);
+      } else {
+        html = html.replace("[LOGO HERE]", "");
+        document.getElementById("preview").innerHTML = html;
+        document.getElementById("output").value = html;
+      }
+    }
+
+    // Download packet
+    function downloadPacket() {
+      const content = document.getElementById("output").value;
+      const blob = new Blob([content], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = get("title").replace(/\s+/g, "_") + "_packet.html";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Clear logo
+    function clearLogo() {
+      const logoInput = document.getElementById("logo");
+      logoInput.value = "";
+      document.querySelector(".logo-block").innerHTML = "";
+      generatePacket();
+    }
+  </script>
+  <!-- Simple footer for the builder interface itself.
+       Note: the generated packet already has its own footer injected in Section 5. -->
+  <footer>
+    <p>PodLab Packet Builder v1.9 — Modular, branded, and future‑proof.</p>
+    <p><small>Generated with PodLab’s workflow system. All packets are client‑friendly and teachable.</small></p>
+  </footer>
+
+</body>
+</html>

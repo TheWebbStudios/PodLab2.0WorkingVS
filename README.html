@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PodLab Packet Builder — README & Changelog</title>
+  <style>
+    body { background:#0f1115; color:#e6e9ef; font:16px/1.6 Inter, sans-serif; padding:40px; max-width:900px; margin:auto; }
+    h1,h2 { color:#ffd56a; }
+    h3 { color:#5cc8ff; }
+    .section { background:#161a22; border-radius:12px; padding:20px; margin-top:20px; border:2px solid #333; box-shadow:0 4px 8px rgba(0,0,0,0.4); }
+    footer { margin-top:40px; text-align:center; color:#9aa3b2; font-size:0.85rem; }
+  </style>
+</head>
+<body>
+
+  <h1>🎙️ PodLab Packet Builder — README & Changelog</h1>
+  <p>PodLab is a modular, branded packet builder for podcasters and creative educators. It generates complete, styled episode packets with talking points, scripts, guest sections, ad carts, and outreach emails — all client‑friendly and teachable.</p>
+
+  <div class="section">
+    <h2>🚀 Setup Guide</h2>
+    <h3>📁 Folder Contents</h3>
+    <ul>
+      <li><strong>builder.html</strong> — Main form + preview + script logic</li>
+      <li><strong>packet.css</strong> — Styling for builder interface and preview</li>
+      <li><strong>episodeTemplate.html</strong> — Skeleton packet with placeholders</li>
+      <li><strong>README.html</strong> — Setup guide + changelog</li>
+      <li><strong>launch.sh</strong> / <strong>launch.bat</strong> — One‑click startup scripts</li>
+    </ul>
+
+    <h3>🧰 Requirements</h3>
+    <ul>
+      <li>Python 3 installed</li>
+      <li>Browser (Chrome, Edge, Firefox, Safari)</li>
+    </ul>
+
+    <h3>▶️ Launch Instructions</h3>
+    <ol>
+      <li>Open terminal/command prompt</li>
+      <li>Navigate to project folder: <code>cd path/to/podlab-builder</code></li>
+      <li>Start local server: <code>python -m http.server</code></li>
+      <li>Open browser at: <code>http://localhost:8000/builder.html</code></li>
+      <li>Or use one‑click launch: <br> macOS/Linux → <code>./launch.sh</code> <br> Windows → double‑click <code>launch.bat</code></li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <h2>📝 Changelog</h2>
+
+    <h3>v1.9 (Current Release)</h3>
+    <ul>
+      <li>🔄 <strong>Dynamic Segments</strong>: Add/remove segments on demand. Each includes Talking Points, Script, Runtime, Transition, and Ad Cart.</li>
+      <li>🖼️ <strong>Independent Scrolling Columns</strong>: Form panel and preview panel scroll separately for long episodes.</li>
+      <li>🎙️ <strong>Segment Script + Talking Points Duality</strong>: Each segment now supports both riff prompts and full narration scripts.</li>
+      <li>⏱️ <strong>Runtime Auto‑Sum</strong>: Total estimated runtime displayed at the bottom of the packet.</li>
+      <li>📧 <strong>Future‑proof Outreach</strong>: Emails now include recording date, time, and platform fields. Templates are modular for easy expansion.</li>
+    </ul>
+    <p><em>Result:</em> PodLab v1.9 is scalable, flexible, and professional — ready for solo or guest episodes, long sessions, and client handoff.</p>
+
+    <h3>v1.8 (Previous Release)</h3>
+    <ul>
+      <li>🎨 <strong>Self‑contained Packets</strong>: Inline CSS injection ensures downloaded packets keep full styling.</li>
+      <li>📝 <strong>Fixed Segments</strong>: Intro, 3 segments, outro, each with runtime, transition, and ad cart.</li>
+      <li>👥 <strong>Guest Section</strong>: Intro + questions included in packet.</li>
+      <li>📧 <strong>Outreach Emails</strong>: Invite, Confirmation, and Thank You templates auto‑filled with show/host/guest info.</li>
+      <li>🖼️ <strong>Logo Upload</strong>: Embed logo directly into packet (base64 image).</li>
+      <li>🔍 <strong>Live Preview + Copy‑Paste Output</strong>: See packet instantly, copy raw HTML if needed.</li>
+      <li>⚙️ <strong>One‑click Launch Scripts</strong>: <code>launch.sh</code> and <code>launch.bat</code> for easy startup.</li>
+    </ul>
+    <p><em>Result:</em> PodLab v1.8 was the first working prototype — client‑ready, teachable, and portable.</p>
+  </div>
+
+  <div class="section">
+    <h2>📌 Roadmap</h2>
+    <ul>
+      <li>v2.0 → Export options (PDF, Markdown), drag‑and‑drop segment reordering, outreach automation.</li>
+      <li>v2.x → Integration with scheduling tools, advanced analytics, and multi‑episode packet generation.</li>
+    </ul>
+  </div>
+
+  <footer>
+    PodLab Packet Builder v1.9 — Modular, branded, and future‑proof.
+  </footer>
+
+</body>
+</html>
