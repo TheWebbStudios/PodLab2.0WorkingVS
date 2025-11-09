@@ -94,29 +94,39 @@
       <!-- Dynamic segments container.
            JS will append segment fieldsets here with unique IDs (segN, segNscript, segNtime, transN, adN). -->
       <div id="segmentsContainer">
-        <!-- Seed with one initial segment for usability.
-             Additional segments can be added via the "Add segment" button. -->
+        <!-- Seed with one initial segment for usability. The seeded segment
+             now includes the same IDs produced by addSegment()/createSegment()
+             so collectFormData() and restoreDraft() operate consistently. -->
         <fieldset class="segment-fieldset" data-index="1" draggable="true">
           <legend>Segment 1</legend>
 
-          <!-- Talking points: bullet-style prompts to riff or guide discussion -->
-          <label for="seg1">Talking points</label>
-          <textarea id="seg1" rows="4" placeholder="Bullet prompts. Use | to separate points."></textarea>
-          <small>Tip: Use | between points to create clear breaks.</small>
+          <label for="segType1">Segment Type</label>
+          <select id="segType1" onchange="toggleSegmentType(this, 1)">
+            <option value="scripted">Scripted (solo)</option>
+            <option value="guest">Guest</option>
+          </select>
 
-          <!-- Full script: read-through narration for solo delivery -->
-          <label for="seg1script">Segment script</label>
-          <textarea id="seg1script" rows="6" placeholder="Full narration for solo recording"></textarea>
+          <div class="scripted-fields">
+            <label for="seg1">Talking points</label>
+            <textarea id="seg1" rows="4" placeholder="Bullet prompts. Use | to separate points."></textarea>
 
-          <!-- Estimated runtime: helps pacing and auto-totaling later -->
+            <label for="seg1script">Segment script</label>
+            <textarea id="seg1script" rows="6" placeholder="Full narration for solo recording"></textarea>
+          </div>
+
+          <div class="guest-fields" style="display: none;">
+            <label for="seg1guest">Guest Introduction</label>
+            <textarea id="seg1guest" rows="3" placeholder="How you'll introduce this guest"></textarea>
+            <label for="seg1questions">Guest Questions</label>
+            <textarea id="seg1questions" rows="4" placeholder="Q1 | Q2 | Q3 (use | to separate)"></textarea>
+          </div>
+
           <label for="seg1time">Estimated runtime (min)</label>
           <input type="text" id="seg1time" placeholder="e.g., 4–6" />
 
-          <!-- Transition line: bridge to the next ad or segment -->
           <label for="trans1">Transition line</label>
           <input type="text" id="trans1" placeholder="Bridge into Ad Cart 1 or next segment" />
 
-          <!-- Ad cart copy: sponsor or promo message for this break -->
           <label for="ad1">Ad cart 1</label>
           <textarea id="ad1" rows="3" placeholder="Sponsor/promo copy"></textarea>
         </fieldset>
@@ -613,6 +623,8 @@
 
     // Collect form data into a JSON-friendly model
     function collectFormData() {
+      // Debug: ensure segmentCount is what we expect when collecting
+      try { console.log('collectFormData segmentCount =', segmentCount); } catch(e) {}
       const data = {
         title: get('title'),
         description: get('description'),
@@ -657,6 +669,13 @@
         }
 
         data.segments.push(segment);
+      }
+
+      // Debug: log segments so we can verify collectFormData captured the DOM values
+      try {
+        console.log('collectFormData segments:', data.segments);
+      } catch (e) {
+        console.log('collectFormData logging failed:', e);
       }
 
       return data;
@@ -787,8 +806,10 @@
         document.getElementById('description').value = data.description || '';
         document.getElementById('intro').value = data.intro || '';
         document.getElementById('outro').value = data.outro || '';
-        document.getElementById('guestIntro').value = data.guestIntro || '';
-        document.getElementById('questions').value = data.questions || '';
+        const giEl = document.getElementById('guestIntro');
+        if (giEl) giEl.value = data.guestIntro || '';
+        const qElTop = document.getElementById('questions');
+        if (qElTop) qElTop.value = data.questions || '';
         document.getElementById('showName').value = data.showName || '';
         document.getElementById('hostName').value = data.hostName || '';
         document.getElementById('topics').value = data.topics || '';
@@ -804,54 +825,62 @@
           document.getElementById('brandBackground').value = data.brand.background || '#0f1115';
           document.getElementById('brandFont').value = data.brand.font || 'Inter, system-ui, -apple-system, sans-serif';
         }
-
-        // Rebuild segments UI to match saved segmentCount
-        const n = data.segmentCount || data.segments.length || 1;
+        // Clear all segments and rebuild using addSegment() so IDs match
         const container = document.getElementById('segmentsContainer');
-        container.innerHTML = ''; // clear
+        container.innerHTML = '';
         segmentCount = 0;
-        for (let i = 1; i <= n; i++) {
-          segmentCount = i;
-          const fs = document.createElement('fieldset');
-          fs.className = 'segment-fieldset';
-          fs.dataset.index = i;
-          fs.innerHTML = `
-            <legend>Segment ${i}</legend>
-            <label for="seg${i}">Talking points</label>
-            <textarea id="seg${i}" rows="4"></textarea>
 
-            <label for="seg${i}script">Segment script</label>
-            <textarea id="seg${i}script" rows="6"></textarea>
+        // Rebuild segments from saved draft using addSegment(), then populate
+        if (Array.isArray(data.segments) && data.segments.length) {
+          data.segments.forEach((s, idx) => {
+            // addSegment increments segmentCount and appends the fieldset with
+            // predictable IDs (segTypeN, segN, segNscript, segNtime, transN, adN)
+            addSegment();
+            const i = idx + 1;
 
-            <label for="seg${i}time">Estimated runtime (min)</label>
-            <input type="text" id="seg${i}time" />
+            // Confirm the DOM elements exist before populating — helpful during debugging
+            console.log(`restoreDraft: created segment ${i}, checking elements:`, {
+              seg: document.getElementById('seg' + i),
+              segType: document.getElementById('segType' + i),
+              segScript: document.getElementById('seg' + i + 'script'),
+              segGuest: document.getElementById('seg' + i + 'guest'),
+              segQuestions: document.getElementById('seg' + i + 'questions'),
+              segTime: document.getElementById('seg' + i + 'time'),
+              trans: document.getElementById('trans' + i),
+              ad: document.getElementById('ad' + i)
+            });
 
-            <label for="trans${i}">Transition line</label>
-            <input type="text" id="trans${i}" />
+            // Set type and toggle visibility of scripted/guest fields
+            const typeEl = document.getElementById('segType' + i);
+            if (typeEl) {
+              typeEl.value = s.type || 'scripted';
+              toggleSegmentType(typeEl, i);
+            }
 
-            <label for="ad${i}">Ad cart ${i}</label>
-            <textarea id="ad${i}" rows="3"></textarea>
-          `;
-          container.appendChild(fs);
-        
-          // ensure new fieldset is draggable
-          makeSegmentDraggable(fs);
+            // Populate fields based on type
+            if ((s.type || 'scripted') === 'guest') {
+              const guestEl = document.getElementById('seg' + i + 'guest');
+              const qEl = document.getElementById('seg' + i + 'questions');
+              if (guestEl) guestEl.value = s.guestIntro || '';
+              if (qEl) qEl.value = s.questions || '';
+            } else {
+              const talkEl = document.getElementById('seg' + i);
+              const scriptEl = document.getElementById('seg' + i + 'script');
+              if (talkEl) talkEl.value = s.talking || '';
+              if (scriptEl) scriptEl.value = s.script || '';
+            }
+
+            const timeEl = document.getElementById('seg' + i + 'time');
+            const transEl = document.getElementById('trans' + i);
+            const adEl = document.getElementById('ad' + i);
+            if (timeEl) timeEl.value = s.runtime || '';
+            if (transEl) transEl.value = s.transition || '';
+            if (adEl) adEl.value = s.ad || '';
+          });
+        } else {
+          // Ensure at least one segment exists
+          addSegment();
         }
-
-        // Populate segment values
-        if (Array.isArray(data.segments)) {
-          for (let i = 0; i < data.segments.length; i++) {
-            const s = data.segments[i] || {};
-            const idx = i + 1;
-            const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-            setVal(`seg${idx}`, s.talking);
-            setVal(`seg${idx}script`, s.script);
-            setVal(`seg${idx}time`, s.runtime);
-            setVal(`trans${idx}`, s.transition);
-            setVal(`ad${idx}`, s.ad);
-          }
-        }
-
         // Restore logo data if present (we cannot set file input programmatically)
         if (data.logoData) {
           savedLogoData = data.logoData;
@@ -924,63 +953,128 @@
       }
     });
 
-    // Add a new segment dynamically
-    let segmentCount = 1; // we seeded Segment 1 in Section 2
-    document.getElementById("addSegmentBtn").addEventListener("click", () => {
-      segmentCount++;
-      const container = document.getElementById("segmentsContainer");
+    // --- Segment Management ---
+    let segmentCount = 1;
 
-      // Build new fieldset with unique IDs
+    function createSegment(i) {
       const fs = document.createElement("fieldset");
       fs.className = "segment-fieldset";
-      fs.dataset.index = segmentCount;
+      fs.dataset.index = i;
       fs.innerHTML = `
-        <legend>Segment ${segmentCount}</legend>
-        <label for="segType${segmentCount}">Segment Type</label>
-        <select id="segType${segmentCount}" onchange="toggleSegmentType(this, ${segmentCount})">
+        <legend>Segment ${i}</legend>
+        <label for="segType${i}">Segment Type</label>
+        <select id="segType${i}" onchange="toggleSegmentType(this, ${i})">
           <option value="scripted">Scripted (solo)</option>
           <option value="guest">Guest</option>
         </select>
-
         <div class="scripted-fields">
-          <label for="seg${segmentCount}">Talking points</label>
-          <textarea id="seg${segmentCount}" rows="4" placeholder="Bullet prompts. Use | to separate points."></textarea>
-
-          <label for="seg${segmentCount}script">Segment script</label>
-          <textarea id="seg${segmentCount}script" rows="6" placeholder="Full narration for solo recording"></textarea>
+          <label for="seg${i}">Talking points</label>
+          <textarea id="seg${i}" rows="4" placeholder="Bullet prompts. Use | to separate points."></textarea>
+          <label for="seg${i}script">Segment script</label>
+          <textarea id="seg${i}script" rows="6" placeholder="Full narration for solo recording"></textarea>
         </div>
-
         <div class="guest-fields" style="display: none;">
-          <label for="seg${segmentCount}guest">Guest Introduction</label>
-          <textarea id="seg${segmentCount}guest" rows="3" placeholder="How you'll introduce this guest"></textarea>
-
-          <label for="seg${segmentCount}questions">Guest Questions</label>
-          <textarea id="seg${segmentCount}questions" rows="4" placeholder="Q1 | Q2 | Q3 (use | to separate)"></textarea>
+          <label for="seg${i}guest">Guest Introduction</label>
+          <textarea id="seg${i}guest" rows="3" placeholder="How you'll introduce this guest"></textarea>
+          <label for="seg${i}questions">Guest Questions</label>
+          <textarea id="seg${i}questions" rows="4" placeholder="Q1 | Q2 | Q3 (use | to separate)"></textarea>
         </div>
-
-        <label for="seg${segmentCount}time">Estimated runtime (min)</label>
-        <input type="text" id="seg${segmentCount}time" placeholder="e.g., 4-6" />
-
-        <label for="trans${segmentCount}">Transition line</label>
-        <input type="text" id="trans${segmentCount}" placeholder="Bridge to next segment or ad" />
-
-        <label for="ad${segmentCount}">Ad cart ${segmentCount}</label>
-        <textarea id="ad${segmentCount}" rows="3" placeholder="Sponsor/promo copy"></textarea>
+        <label for="seg${i}time">Estimated runtime (min)</label>
+        <input type="text" id="seg${i}time" placeholder="e.g., 4-6" />
+        <label for="trans${i}">Transition line</label>
+        <input type="text" id="trans${i}" placeholder="Bridge to next segment or ad" />
+        <label for="ad${i}">Ad cart ${i}</label>
+        <textarea id="ad${i}" rows="3" placeholder="Sponsor/promo copy"></textarea>
       `;
-      container.appendChild(fs);
-      // Make the new segment draggable and ensure autosave listeners are attached
       makeSegmentDraggable(fs);
       wireAutosaveListeners();
-    });
+      return fs;
+    }
 
-    // Remove last segment
-    document.getElementById("removeLastSegmentBtn").addEventListener("click", () => {
-      if (segmentCount > 1) {
-        const container = document.getElementById("segmentsContainer");
+    function addSegment() {
+      segmentCount++;
+      const i = segmentCount;
+      const container = document.getElementById("segmentsContainer");
+      const fs = createSegment(i);
+      container.appendChild(fs);
+
+      // Ensure autosave listeners are wired for newly added inputs
+      wireAutosaveListeners();
+
+      // Sanity-check: verify expected IDs exist for this segment. Log a clear
+      // warning if any are missing so saving can be diagnosed quickly.
+      const missing = [];
+      const expectedIds = [
+        `segType${i}`,
+        `seg${i}`,
+        `seg${i}script`,
+        `seg${i}time`,
+        `trans${i}`,
+        `ad${i}`
+      ];
+      expectedIds.forEach(id => { if (!document.getElementById(id)) missing.push(id); });
+      if (missing.length) {
+        console.warn(`addSegment: missing expected IDs for segment ${i}:`, missing);
+      } else {
+        console.log(`addSegment: segment ${i} created with expected IDs`);
+      }
+    }
+
+    function removeLastSegment() {
+      const container = document.getElementById("segmentsContainer");
+      if (container.children.length > 1) {
         container.removeChild(container.lastElementChild);
         segmentCount--;
       }
+    }
+
+    document.getElementById("addSegmentBtn").onclick = addSegment;
+    document.getElementById("removeLastSegmentBtn").onclick = removeLastSegment;
+
+    // On page load, ensure at least one segment exists
+    window.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('segmentsContainer');
+      if (container.children.length === 0) {
+        container.appendChild(createSegment(1));
+        segmentCount = 1;
+      }
     });
+
+    // Placeholder helpers and cleanup
+    // Some older code paths referenced helpers that were removed during refactor.
+    // Provide small, safe placeholders to avoid runtime errors. Replace or expand
+    // these with richer behavior (autosave, UI updates) as needed.
+
+    // No-op: update UI state for draft buttons (restore/delete). Expand as needed.
+    function updateDraftButtons() {
+      // Intentionally minimal: avoid errors when called from restoreDraft.
+      // Could enable/disable buttons based on drafts list in a future change.
+      return;
+    }
+
+    // Wire autosave listeners when segments are rebuilt. Minimal implementation
+    // to prevent errors; does not perform background saves by default.
+    function wireAutosaveListeners() {
+      // Attach cheap listeners so callers won't fail. Keep lightweight.
+      const container = document.getElementById('segmentsContainer');
+      if (!container) return;
+      container.querySelectorAll('input, textarea, select').forEach(el => {
+        el.removeEventListener('input', saveDraftDebounced);
+        el.addEventListener('input', saveDraftDebounced);
+      });
+    }
+
+    // Debounced placeholder for autosave. Currently only updates the status to
+    // indicate activity. Replace with real save logic if you want true autosave.
+    function saveDraftDebounced() {
+      if (draftTimer) clearTimeout(draftTimer);
+      draftTimer = setTimeout(() => {
+        showDraftStatus('Autosave ready');
+        // Intentionally not calling saveDraftToIndexedDB to avoid creating
+        // many draft entries during active editing. Implement durable autosave
+        // later if desired.
+      }, 700);
+    }
 
     // Generate packet HTML
     function generatePacket() {
