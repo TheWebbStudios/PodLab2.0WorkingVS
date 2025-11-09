@@ -1,5 +1,5 @@
 @echo off
-REM PodLab v1.9 Launch Script (Windows)
+REM PodLab v2.0 Launch Script (Windows)
 REM Starts a local server and opens builder.html in the default browser.
 
 REM Start Python HTTP server

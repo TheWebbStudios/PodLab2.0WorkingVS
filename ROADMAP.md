@@ -1,7 +1,7 @@
 # PodLab 2.0 Roadmap
 
 ## 🎯 Core Guardrails
-- Preserve **v1.9 baseline functions**:
+- Preserve **v2.0 baseline functions**:
   - Dynamic segments
   - Outreach emails
   - Runtime auto-sum
@@ -15,7 +15,7 @@
 ---
 
 ## 🛠 Phase 1 — Foundation (Alpha)
-**Objective:** Add persistence and branding while keeping v1.9 intact.
+**Objective:** Add persistence and branding while keeping v2.0 intact.
 - Autosave drafts (LocalStorage/IndexedDB)
 - Logo upload + brand kit basics (logo, colors, fonts)
 - Segment drag-and-drop reordering

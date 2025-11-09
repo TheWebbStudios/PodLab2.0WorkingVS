@@ -1,5 +1,5 @@
 #!/bin/bash
-# PodLab v1.9 Launch Script (macOS/Linux)
+# PodLab v2.0 Launch Script (macOS/Linux)
 # Starts a local server and opens builder.html in the default browser.
 
 # Start Python HTTP server
